@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>HarmonyOS 剪贴板 Web 控制台</title>
+    <style>
+        body {
+          font-family: "HarmonyOS Sans", "Segoe UI", sans-serif;
+          padding: 20px;
+          background-color: #f7f8fa;
+          color: #222;
+          max-width: 600px;
+          margin: 0 auto;
+        }
+
+        h1 {
+          color: #007dff;
+          font-size: 24px;
+          margin-bottom: 16px;
+          text-align: center;
+        }
+
+        /* ✅ 顶部状态提示 */
+        #statusBar {
+          display: none;
+          text-align: center;
+          padding: 10px;
+          border-radius: 6px;
+          margin-bottom: 15px;
+          transition: all 0.3s ease;
+        }
+        #statusBar.success {
+          background-color: #e6f4ea;
+          color: #107c10;
+        }
+        #statusBar.error {
+          background-color: #fdecea;
+          color: #b91c1c;
+        }
+
+        /* ✅ 输入区 */
+        .input-section {
+          display: flex;
+          margin-bottom: 20px;
+          gap: 10px;
+        }
+        #clipInput {
+          flex: 1;
+          padding: 10px 12px;
+          font-size: 16px;
+          border: 1px solid #ccc;
+          border-radius: 8px;
+          outline: none;
+          transition: 0.2s;
+        }
+        #clipInput:focus {
+          border-color: #007dff;
+          box-shadow: 0 0 3px rgba(0, 125, 255, 0.4);
+        }
+        #sendBtn {
+          background-color: #007dff;
+          color: #fff;
+          border: none;
+          padding: 10px 16px;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: 0.2s;
+          font-size: 15px;
+        }
+        #sendBtn:hover {
+          background-color: #0056b3;
+        }
+
+        /* ✅ 剪贴板列表 */
+        .clipboard-container {
+          margin-top: 10px;
+        }
+        .clip-item {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          background: #fff;
+          padding: 12px 15px;
+          margin-bottom: 10px;
+          border-radius: 10px;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+          transition: 0.2s;
+        }
+        .clip-item:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+        .clip-text {
+          flex: 1;
+          margin-right: 12px;
+          word-break: break-word;
+          color: #333;
+        }
+        .copy-btn {
+          background-color: #007dff;
+          color: #fff;
+          border: none;
+          padding: 6px 10px;
+          border-radius: 6px;
+          cursor: pointer;
+          transition: 0.2s;
+          font-size: 14px;
+        }
+        .copy-btn:hover {
+          background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+
+<h1>HarmonyOS 剪贴板管理</h1>
+
+<!-- ✅ 顶部状态提示栏 -->
+<div id="statusBar"></div>
+
+<!-- ✅ 输入区 -->
+<div class="input-section">
+    <input type="text" id="clipInput" placeholder="输入要写入鸿蒙剪贴板的内容..." />
+    <button id="sendBtn" onclick="sendClipboard()">写入</button>
+</div>
+
+<!-- ✅ 剪贴板历史 -->
+<div class="clipboard-container" id="clipboardContainer"></div>
+
+<script>
+    let lastClipboardData = [];
+
+    /** ✅ 状态提示（替代 alert） */
+    function showStatus(msg, type = 'success') {
+      const bar = document.getElementById('statusBar');
+      bar.textContent = msg;
+      bar.className = type;
+      bar.style.display = 'block';
+      setTimeout(() => {
+        bar.style.opacity = '0';
+        setTimeout(() => {
+          bar.style.display = 'none';
+          bar.style.opacity = '1';
+        }, 300);
+      }, 1500);
+    }
+
+    /** ✅ 写入剪贴板 */
+    async function sendClipboard() {
+      const text = document.getElementById('clipInput').value.trim();
+      if (!text) return showStatus('请输入内容', 'error');
+
+      try {
+        const res = await fetch('/clipboard', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text })
+        });
+        const data = await res.json();
+        if (res.ok && data.status === 'ok') {
+          document.getElementById('clipInput').value = '';
+          showStatus('✅ 已写入鸿蒙剪贴板');
+          updateClipboard();
+        } else {
+          showStatus('写入失败：' + (data.error || '未知错误'), 'error');
+        }
+      } catch (err) {
+        showStatus('网络错误：' + err.message, 'error');
+      }
+    }
+
+    /** ✅ 获取剪贴板内容 */
+    async function fetchClipboard() {
+      try {
+        const res = await fetch('/clipboard');
+        if (!res.ok) throw new Error('网络响应失败');
+        return await res.json();
+      } catch (err) {
+        console.error('获取剪贴板失败:', err);
+        return [];
+      }
+    }
+
+    /** ✅ 渲染剪贴板列表 */
+    function renderClipboard(data) {
+      const container = document.getElementById('clipboardContainer');
+      container.innerHTML = '';
+      data.forEach((item) => {
+        const div = document.createElement('div');
+        div.className = 'clip-item';
+
+        const span = document.createElement('span');
+        span.className = 'clip-text';
+        span.textContent = item;
+
+        const btn = document.createElement('button');
+        btn.textContent = '复制';
+        btn.className = 'copy-btn';
+        btn.addEventListener('click', () => copyToClipboard(item, btn));
+
+        div.appendChild(span);
+        div.appendChild(btn);
+        container.appendChild(div);
+      });
+    }
+
+    /** ✅ 复制内容到浏览器剪贴板 */
+    function copyToClipboard(text, btn) {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        try {
+            document.execCommand('copy');
+            btn.textContent = '已复制';
+            setTimeout(() => btn.textContent = '复制', 1000);
+        } catch (err) {
+            alert('复制失败，请允许剪贴板权限');
+        }
+        document.body.removeChild(textarea);
+    }
+
+    /** ✅ 更新剪贴板数据 */
+    async function updateClipboard() {
+      const data = await fetchClipboard();
+      if (JSON.stringify(data) !== JSON.stringify(lastClipboardData)) {
+        lastClipboardData = data;
+        renderClipboard(data);
+      }
+    }
+
+    // ✅ 每 1 秒轮询更新剪贴板
+    setInterval(updateClipboard, 1000);
+
+    // ✅ 初次加载
+    updateClipboard();
+</script>
+</body>
+</html>

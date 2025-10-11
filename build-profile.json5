@@ -1,0 +1,56 @@
+{
+  "app": {
+    "signingConfigs": [
+      {
+        "name": "default",
+        "type": "HarmonyOS",
+        "material": {
+          "certpath": "C:\\Users\\EDY\\.ohos\\config\\default_CrossDeviceClipboard_AoKMxkOW0nDRiW2iZ5LsfeBmAqUKtwvVWVXQcf1lhOc=.cer",
+          "keyAlias": "debugKey",
+          "keyPassword": "0000001BA9A06466582F68E4F0CBAF2115B771A55F14CBEF87BFB39864B2761E974C881C623F42FE6FFD7B",
+          "profile": "C:\\Users\\EDY\\.ohos\\config\\default_CrossDeviceClipboard_AoKMxkOW0nDRiW2iZ5LsfeBmAqUKtwvVWVXQcf1lhOc=.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "C:\\Users\\EDY\\.ohos\\config\\default_CrossDeviceClipboard_AoKMxkOW0nDRiW2iZ5LsfeBmAqUKtwvVWVXQcf1lhOc=.p12",
+          "storePassword": "0000001B0883B8E600BAFC2902968C10B48E784B65B8E95BD922737022FB84920C377801170C4F3E9CEAC4"
+        }
+      }
+    ],
+    "products": [
+      {
+        "name": "default",
+        "signingConfig": "default",
+        "targetSdkVersion": "6.0.0(20)",
+        "compatibleSdkVersion": "5.0.1(13)",
+        "runtimeOS": "HarmonyOS",
+        "buildOption": {
+          "strictMode": {
+            "caseSensitiveCheck": true,
+            "useNormalizedOHMUrl": true
+          }
+        }
+      }
+    ],
+    "buildModeSet": [
+      {
+        "name": "debug",
+      },
+      {
+        "name": "release"
+      }
+    ]
+  },
+  "modules": [
+    {
+      "name": "entry",
+      "srcPath": "./entry",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default"
+          ]
+        }
+      ]
+    }
+  ]
+}
