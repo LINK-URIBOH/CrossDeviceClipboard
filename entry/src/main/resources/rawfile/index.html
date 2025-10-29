@@ -223,9 +223,16 @@
     /** ✅ 更新剪贴板数据 */
     async function updateClipboard() {
       const data = await fetchClipboard();
+
+      // 超过 30 条，去掉最旧的
+      while (data.length > 30) {
+        data.pop();
+      }
+
+      // 如果数据发生变化，更新显示
       if (JSON.stringify(data) !== JSON.stringify(lastClipboardData)) {
         lastClipboardData = data;
-        renderClipboard(data);
+        renderClipboard(lastClipboardData);
       }
     }
 

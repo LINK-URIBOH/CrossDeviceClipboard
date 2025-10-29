@@ -23,7 +23,7 @@ async function checkAccessToken(permission: Permissions): Promise<abilityAccessC
   }
   return grantStatus;
 }
-const ipInfo = wifiManager.getIpInfo();
+let ipInfo = wifiManager.getIpInfo();
 function getIpAddrFromNum(ipNum: number): string {
   return (ipNum >>> 24) + '.' + (ipNum >> 16 & 0xFF) + '.' + (ipNum >> 8 & 0xFF) + '.' + (ipNum & 0xFF);
 }
@@ -38,6 +38,17 @@ struct Index {
   @State permissionGranted: boolean = false;
   @State statusMessage: string = '';
   @State backgroundRunning: boolean = false;
+  @State timerId: number = 0;
+
+  private addToClipboardList(text: string): void {
+    if (!text || text.length === 0) return;
+    if (this.clipboardList.includes(text)) return;
+
+    if (this.clipboardList.length >= 30) {
+      this.clipboardList.pop();
+    }
+    this.clipboardList.unshift(text);
+  }
 
   /** 请求权限 */
   reqPermissionsFromUser(permissions: Array<Permissions>): void {
@@ -69,8 +80,8 @@ struct Index {
       try {
         const text = await PasteboardUtil.getDataStr();
         if (text && text.length > 0) {
-          this.clipboardList.unshift(text);
-          this.statusMessage = `剪贴板内容：${text}`;
+          this.addToClipboardList(text);
+          this.statusMessage = `剪贴板内容${text}`;
         } else {
           this.statusMessage = '剪贴板为空';
         }
@@ -86,19 +97,27 @@ struct Index {
 
   /** 启停 Web 服务 */
   toggleService(): void {
+    ipInfo = wifiManager.getIpInfo();
     if (this.serviceRunning) {
       webServer.stop();
       this.serviceRunning = false;
+      clearInterval(this.timerId);
       // this.serviceKey = '';
     } else {
       webServer.start((newClip: string) => {
         if (newClip.length > 0 && !this.clipboardList.includes(newClip)) {
-          this.clipboardList.unshift(newClip);
+          this.addToClipboardList(newClip);
         }
       }).then(() => {
         // this.serviceKey = webServer.getKey();
       });
       this.serviceRunning = true;
+      if (this.backgroundRunning){
+        this.timerId = setInterval(() => {
+          this.stopContinuousTask()
+          this.startContinuousTask()
+        }, 180000);
+      }
     }
   }
 
@@ -135,6 +154,7 @@ struct Index {
                 this.backgroundRunning = true;
                 this.serviceRunning = false;
                 this.toggleService();
+
               }
             }
           );
@@ -211,7 +231,7 @@ struct Index {
         .width('100%')
       }
 
-      Text('剪贴板内容：')
+      Text('剪贴板内容')
         .fontSize(18)
         .fontWeight(FontWeight.Medium)
 
